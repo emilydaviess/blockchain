@@ -34,7 +34,7 @@ class Blockchain:
         last_block = self.chain[-1]
         return(last_block)
     
-    
+    # this will be used to mine blocks
     def proof_of_work(self, previous_proof):
         new_proof = 1  # this is the Nonce
         check_proof = False
@@ -72,3 +72,57 @@ class Blockchain:
             
 
 # part 2 - mining our blockchain
+
+# create a web app using Flask
+app = Flask(__name__)
+#app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+
+# create a blockchain
+blockchain = Blockchain()
+
+# mining a new block
+@app.route('/mine_block', methods=['GET']) # Running on http://127.0.0.1:5000/
+def mine_block():
+    # first thing you need to do to mine a block, is to solve the proof problem
+    # to solve the proof problem, you need to previous proof (from the previous block)
+    previous_block = blockchain.get_previous_block()
+    previous_proof = previous_block['proof']
+    proof = blockchain.proof_of_work(previous_proof)
+    previous_hash = blockchain.hash(previous_block)
+    block = blockchain.create_block(proof,previous_hash)
+    response = {'message': "Congrats, you just mined a block!", 
+                'index': block['index'], 
+                'timestamp': block['timestamp'],
+                'proof': block['proof'],
+                'previous_hash': block['previous_hash']}
+   
+    return jsonify(response), 200 # 200 success code
+
+
+# getting the full Blockchain
+@app.route('/get_chain', methods=['GET']) # Running on http://127.0.0.1:5000/
+def get_chain():
+    response = {'chain': blockchain.chain,
+                'length': len(blockchain.chain)}
+    return jsonify(response), 200 # 200 success code
+ 
+# checking if the Blockchain is valid   
+@app.route('/is_valid', methods=['GET']) # Running on http://127.0.0.1:5000/
+def is_valid():
+    is_valid = blockchain.is_chain_valid(blockchain.chain)
+    if is_valid:
+        response = {'message': 'All good. The blockchain is valid.'}
+    else: 
+        response = {'message': 'Houston, we had a problem.'}
+    
+    return jsonify(response), 200 # 200 success code
+  
+    
+
+# running the app
+app.run(host='0.0.0.0', port=5000) # host,port
+
+# now run the whole file
+# go to POSTMAN and c/p http://127.0.0.1:5000/get_chain to see the blockchain
+# or go to http://127.0.0.1:5000/mine_block to mine another block into the chain
+# you can re-visit http://127.0.0.1:5000/get_chain to monitor blocks being added to the chain
